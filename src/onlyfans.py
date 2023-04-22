@@ -1,9 +1,9 @@
 import asyncio
-import aiohttp
 import io
 import uuid
 from itertools import chain
 
+import aiohttp
 import discord
 import ujson
 from bs4 import BeautifulSoup
@@ -12,6 +12,8 @@ from loguru import logger as log
 from config import *
 from src.cookie_utils import *
 
+cookies: dict[str, str] = load_cookies(cookie_jar_file)
+
 
 async def get_models() -> list[dict[str, str]]:
     """Get a list of all creators
@@ -19,7 +21,6 @@ async def get_models() -> list[dict[str, str]]:
     Returns:
         list[dict[str, str]]: JSON with all available models
     """
-    cookies: dict[str, str] = await load_cookies(cookie_jar_file)
     async with aiohttp.ClientSession(headers=headers, cookies=cookies) as client:
         async with client.get(models_url) as response:
             log.info(f"Getting creators from {models_url}")
@@ -49,7 +50,6 @@ async def get_model_info(model_id: str) -> dict[str, str] | None:
 
 async def get_model_posts_offsets(model: str) -> list[int]:
     log.info(f"Getting offsets for {model} posts")
-    cookies: dict[str, str] = await load_cookies(cookie_jar_file)
     async with aiohttp.ClientSession(headers=headers, cookies=cookies) as client:
         async with client.get(f"{base_coomer_url}/{model}") as response:
             log.info(f"Getting  data for {model} posts")
@@ -65,20 +65,19 @@ async def get_model_posts_offsets(model: str) -> list[int]:
 
 async def get_image_posts(model: str, offset: int) -> list[str]:
     log.info(f"Getting posts for {model} at offset {offset}")
-    cookies: dict[str, str] = await load_cookies(cookie_jar_file)
     async with aiohttp.ClientSession(headers=headers, cookies=cookies) as client:
         async with client.get(f"{base_coomer_url}/{model}?o={offset}") as response:
             await save_cookies(response.cookies, cookie_jar_file)
             soup = BeautifulSoup(await response.text(), "lxml")
         posts = soup.find_all("article", {"class": "post-card"})
-    
+
     async def get_image(post):
-        links: list[str] = []    
+        links: list[str] = []
         if post.find("div", {"class": "post-card__image-container"}):
             link = post.find("h2", {"class": "post-card__heading"}).find("a")["href"]
             links.append(f"{base_coomer}{link}")
         return links
-            
+
     results = await asyncio.gather(*[get_image(post) for post in posts])
     images = list(chain.from_iterable(results))
     return images
@@ -86,9 +85,8 @@ async def get_image_posts(model: str, offset: int) -> list[str]:
 
 async def get_images_from_post(posts: list[str]) -> list[str]:
     log.info(f"Getting images from posts...")
-    cookies: dict[str, str] = await load_cookies(cookie_jar_file)
     client = aiohttp.ClientSession(headers=headers, cookies=cookies)
-    
+
     async def get_image(url):
         links: list[str] = []
         async with client.get(url) as response:
@@ -99,17 +97,17 @@ async def get_images_from_post(posts: list[str]) -> list[str]:
             link = file.find("div", {"class": "post__thumbnail"}).find("a")["href"]
             links.append(f"{base_coomer}{link}")
         return links
-    
+
     results: list = await asyncio.gather(*[get_image(post) for post in posts])
-    client.close()
+    await client.close()
     images: list[str] = list(chain.from_iterable(results))
     return images
 
 
 async def prepare_images(images: list[str]):
     log.info(f"Preparing images for upload...")
-    cookies: dict[str, str] = await load_cookies(cookie_jar_file)
     client = aiohttp.ClientSession(headers=headers, cookies=cookies)
+
     async def process(image):
         async with client.get(image) as response:
             await save_cookies(response.cookies, cookie_jar_file)
@@ -119,5 +117,5 @@ async def prepare_images(images: list[str]):
         return file
 
     image_objects: list = await asyncio.gather(*[process(image) for image in images])
-    client.close()
+    await client.close()
     return image_objects

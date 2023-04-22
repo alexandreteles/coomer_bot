@@ -4,10 +4,6 @@ service: str = "onlyfans"
 
 guild_id: int = 1097584844130750524
 
-discord_token: str = (
-    ""
-)
-
 avatar_url: str = "https://cdn.discordapp.com/avatars/533329645269942304/09e6c61bc129927ce1cef8603abcf5b8.png"
 
 headers: dict[str, str] = {

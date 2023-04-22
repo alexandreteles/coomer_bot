@@ -17,7 +17,7 @@ async def save_cookies(cookies, cookie_jar):
         await file.write(json.dumps(dict(cookies)))
 
 
-async def load_cookies(cookie_jar) -> dict[str, str]:
+def load_cookies(cookie_jar) -> dict[str, str]:
     """Load cookies from file
 
     Args:
@@ -29,6 +29,6 @@ async def load_cookies(cookie_jar) -> dict[str, str]:
     if not os.path.exists(cookie_jar):
         log.info(f"Cookie jar {cookie_jar} does not exist. Returning empty dict.")
         return {}
-    async with aiofiles.open(cookie_jar, "r") as file:
+    with open(cookie_jar, "r") as file:
         log.debug(f"Loading cookies from {cookie_jar}")
-        return json.loads(await file.read())
+        return json.loads(file.read())
