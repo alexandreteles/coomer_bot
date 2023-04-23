@@ -12,6 +12,14 @@ headers: dict[str, str] = {
 
 cookie_jar_file: str = "./cookie_jar.json"
 
+negative_prompt: str = "worst quality, low quality, normal quality, lowres, low resolution, cropped, out of frame, sketch, poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, mutated hands and fingers, disconnected limbs, mutation, mutated, ugly, disgusting, blurry, amputation, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, jpeg artifacts, signature, watermark, username, blurry, poorly drawn hands, poorly drawn limbs, bad anatomy, deformed, amateur drawing, odd, weird, strange, bad, terrible, horrible, awful, disgusting, ugly"
+
+cfg_scale: int = 8
+
+steps: int = 30
+
+upscale = True
+
 ### API URLS
 
 base_coomer: str = "https://coomer.party/"
