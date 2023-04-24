@@ -1,5 +1,7 @@
 ### APP CONFIG
 
+bot_name: str = "Coomer"
+
 service: str = "onlyfans"
 
 guild_id: int = 1097584844130750524
@@ -12,13 +14,27 @@ headers: dict[str, str] = {
 
 cookie_jar_file: str = "./cookie_jar.json"
 
-negative_prompt: str = "worst quality, low quality, normal quality, lowres, low resolution, cropped, out of frame, sketch, poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, mutated hands and fingers, disconnected limbs, mutation, mutated, ugly, disgusting, blurry, amputation, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, jpeg artifacts, signature, watermark, username, blurry, poorly drawn hands, poorly drawn limbs, bad anatomy, deformed, amateur drawing, odd, weird, strange, bad, terrible, horrible, awful, disgusting, ugly"
+### AI GENERATION CONFIG
+
+model: str = "dreamlike-diffusion-2.0.safetensors [fdcf65e7]"
+
+prompt_prefix: str = "masterpiece, best quality, good anatomy, high quality, highres, high resolution, global illumination, real hair movement, realistic light, realistic shadow, "
+
+negative_prompt: str = "worst quality, low quality, normal quality, lowres, low resolution, cropped, out of frame, sketch, poorly drawn, bad anatomy, wrong anatomy, extra limb, extra limbs, multiple arms, extra arms, missing limb, floating limbs, mutated hands and fingers, disconnected limbs, mutation, mutated, ugly, disgusting, blurry, amputation, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, jpeg artifacts, signature, watermark, username, blurry, poorly drawn hands, poorly drawn limbs, bad anatomy, deformed, amateur drawing, odd"
 
 cfg_scale: int = 8
 
-steps: int = 30
+steps: int = 32
 
-upscale = True
+upscale: bool = True
+
+aspect_ratio: str = "portrait"
+
+sampler: str = "Heun"
+
+### SERVICE RELATED CONFIG
+
+coomer_home_title: str = "Coomer"
 
 ### API URLS
 
@@ -30,3 +46,5 @@ banner_base_url: str = f"https://coomer.party/banners/{service}/"
 
 base_onlyfans_url: str = "https://onlyfans.com/"
 base_coomer_url: str = f"https://coomer.party/{service}/user/"
+
+prodia_url: str = "https://api.prodia.com/v1/job"

@@ -1,12 +1,12 @@
 import os
+
 import discord
-import aiohttp
-import ujson
 from loguru import logger as log
 
+from cogs.onlyfans import OnlyFans
+from cogs.prodia import ImageGeneration
 from config import *
 from src.cookie_utils import load_cookies
-from cogs.onlyfans import OnlyFans
 
 bot = discord.Bot(debug_guilds=[guild_id])
 
@@ -17,6 +17,12 @@ try:
 except Exception as e:
     log.error(f"Could not load coomer.party cog: {e}")
 
+try:
+    log.info("Loading Prodia cog...")
+    bot.add_cog(ImageGeneration(bot))
+    log.info(f"Loaded Prodia cog.")
+except Exception as e:
+    log.error(f"Could not load Prodia cog: {e}")
 
 @bot.event
 async def on_ready():

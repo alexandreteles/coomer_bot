@@ -55,12 +55,15 @@ async def get_model_posts_offsets(model: str) -> list[int]:
             log.info(f"Getting  data for {model} posts")
             await save_cookies(response.cookies, cookie_jar_file)
             soup = BeautifulSoup(await response.text(), "lxml")
-    paginator: str = (
-        soup.find("div", class_="paginator", id="paginator-top").findChild("small").text
-    )
-    posts: int = int(paginator.split(" ")[-1])
-    offsets: list[int] = [x for x in range(0, posts, 25)]
-    return offsets
+    if soup.find("title").text.strip() != "Coomer":
+        paginator: str = (
+            soup.find("div", class_="paginator", id="paginator-top").findChild("small").text
+        )
+        posts: int = int(paginator.split(" ")[-1])
+        offsets: list[int] = [x for x in range(0, posts, 25)]
+        return offsets
+    else :
+        return []
 
 
 async def get_image_posts(model: str, offset: int) -> list[str]:
@@ -111,11 +114,18 @@ async def prepare_images(images: list[str]):
     async def process(image):
         async with client.get(image) as response:
             await save_cookies(response.cookies, cookie_jar_file)
-            content = io.BytesIO(await response.read())
-        file_id = str(uuid.uuid4())
-        file = discord.File(content, filename=f'{file_id}.{image.split(".")[-1]}')
-        return file
+            content: io.BytesIO = io.BytesIO(await response.read())
+            
+        image_size: int = content.getbuffer().nbytes
+        if image_size > 1000 and image_size < 25000000:
+            file_id = str(uuid.uuid4())
+            file = discord.File(content, filename=f'{file_id}.{image.split(".")[-1]}')
+            return file
+        else:
+            log.info(f"Image {image} is too large or too small. Skipping.")
+            return None
 
     image_objects: list = await asyncio.gather(*[process(image) for image in images])
     await client.close()
-    return image_objects
+    images = list(filter(lambda item: item is not None, image_objects))
+    return images
