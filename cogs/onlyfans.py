@@ -1,11 +1,10 @@
-import asyncio
-from itertools import islice
-
 import discord
 from discord.commands import SlashCommandGroup
 from discord.ext import commands
 from discord.ui import Button, View
 from loguru import logger as log
+import asyncio
+from typing import Final
 
 from config import *
 from src.onlyfans import *
@@ -13,7 +12,7 @@ from views.embeds import *
 
 
 class OnlyFans(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: discord.Bot):
         self.bot = bot
 
     onlyfans = SlashCommandGroup(name="onlyfans", description="OnlyFans commands")
@@ -33,7 +32,7 @@ class OnlyFans(commands.Cog):
         if result:
             await ctx.followup.send(embed=await model_info_embed(result))
         else:
-            await ctx.followup.send(embed = await no_data_available_embed(name))
+            await ctx.followup.send(embed=await no_data_available_embed(name))
 
     @onlyfans.command(
         name="photos",
@@ -45,88 +44,77 @@ class OnlyFans(commands.Cog):
         name: discord.Option(str, "Name of the model to search for", required=True),
     ):
         await ctx.response.defer(ephemeral=True)
-
         log.info(f"Searching for {name}")
-        offsets = await get_model_posts_offsets(name.lower())
-        
-        if not offsets:
-            await ctx.followup.send(embed = await no_data_available_embed(name))
+
+        async def send_images(images: list[str]):
+            # images = await get_image_posts(name, offset)
+            # if not images:
+            #     return
+            files = await prepare_images(images)
+            log.debug(f"Sending {len(files)} images")
+            await ctx.followup.send(
+                files=files,
+                ephemeral=True,
+            )
+            log.debug(f"{len(files)} images sent")
+
+        limit: Final[int] = 10  # max allowed attachments per message
+        offset = 0
+        images = await get_image_posts(name, offset, limit)
+        offset += len(images)
+        if not images:
+            await ctx.send_followup(embed=no_data_available_embed(name), ephemeral=True)
             return
-        
-        log.info(f"Found {len(offsets)} offsets")
-        
-        async def send_images(name: str, offset: int):
-            image_posts = await get_image_posts(name, offset)
-            if image_posts:
-                images = await get_images_from_post(image_posts)
-                files = await prepare_images(images)
-                log.info(f"Sending {len(files)} images")
-                if len(files) > 10:
-                    splits = [
-                        list(islice(files, i, i + 10)) for i in range(0, len(files), 10)
-                    ]
-                    for split in splits:
-                        await ctx.followup.send(
-                            files=split,
-                            ephemeral=True,
-                        )
-                else:
-                    await ctx.followup.send(
-                        files=files,
-                        ephemeral=True,
+
+        await send_images(images)
+        if len(images) < limit:
+            log.debug(f"Only {len(images)}/{limit} images found, not loading more")
+            await ctx.send_followup(embed=no_more_pictures_embed(), ephemeral=True)
+            return
+
+        def check(interaction):
+            return (
+                interaction.channel.id == ctx.channel.id
+                and interaction.user.id == ctx.author.id
+            )
+
+        while True:
+            cancel_button: Button = Button(
+                style=discord.ButtonStyle.danger, label="Cancel"
+            )
+            load_more_button: Button = Button(
+                style=discord.ButtonStyle.primary, label="Load more"
+            )
+            view = View()
+            view.add_item(cancel_button)
+            view.add_item(load_more_button)
+            msg = await ctx.send_followup(view=view, ephemeral=True)
+            log.debug(f"Awaiting button press...")
+
+            try:
+                interaction = await self.bot.wait_for(
+                    "interaction", check=check, timeout=120
+                )
+                if f"{load_more_button.custom_id}" in str(interaction.data):
+                    await msg.delete()
+                    loading_msg = await ctx.send_followup(
+                        embed=loading_more_embed(), ephemeral=True
                     )
-                log.info(f"Sent {len(files)} images")
-
-        if len(offsets) == 1:
-            await send_images(name.lower(), offsets[0])
-            await ctx.send_followup(embed = await no_more_pictures_embed(), ephemeral=True) 
-        elif len(offsets) > 1:
-            for offset in offsets:
-                await send_images(name.lower(), offset)
-                if offset != offsets[-1]:
-                    def check(interaction):
-                        return (
-                            interaction.channel.id == ctx.channel.id
-                            and interaction.user.id == ctx.author.id
-                            )
-                        
-                    cancel_button: Button = Button(style=discord.ButtonStyle.danger, label="Cancel")
-                    load_more_button: Button = Button(style=discord.ButtonStyle.primary, label="Load More...")
-                    view: View = View()
-                    view.add_item(cancel_button)
-                    view.add_item(load_more_button)
-                    
-                    msg = await ctx.send_followup(view=view, ephemeral=True)
-                    log.info(f"Awaiting button press...")
-
-                    try:
-                        interaction = await self.bot.wait_for(
-                            "interaction", check=check, timeout=120
-                        )
-
-                        if f"{load_more_button.custom_id}" in str(interaction.data):
-                            log.info(f"Load more button pressed, loading...")
-                            await msg.delete()
-                            await ctx.send_followup(
-                                embed=await loading_more_pictures_embed(),
-                                ephemeral=True
-                                )
-                        elif f"{cancel_button.custom_id}" in str(interaction.data):
-                            log.info(f"Cancel button pressed, unloading...")
-                            await msg.delete()
-                            await ctx.send_followup(
-                                embed=await unloading_results_embed(),
-                                ephemeral=True
-                                )
-                            break
-
-                    except asyncio.TimeoutError:
+                    images = await get_image_posts(name, offset, limit)
+                    if not images:
                         await msg.delete()
                         await ctx.send_followup(
-                            embed=await unloading_results_embed(),
-                            ephemeral=True
-                            )
+                            embed=no_more_pictures_embed(), ephemeral=True
+                        )
+                        await loading_msg.delete()
                         break
-            await ctx.send_followup(embed = await no_more_pictures_embed(), ephemeral=True) 
-        else:
-            await ctx.followup.send(embed = await no_data_available_embed(name))
+                    offset += len(images)
+                    await send_images(images)
+                    await loading_msg.delete()
+                elif f"{cancel_button.custom_id}" in str(interaction.data):
+                    raise asyncio.TimeoutError  # cheesy, but it works
+            except asyncio.TimeoutError:
+                await msg.delete()
+                await ctx.send_followup(embed=unloading_results_embed(), ephemeral=True)
+                log.debug(f"Unloading results...")
+                break

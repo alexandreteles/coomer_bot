@@ -1,12 +1,13 @@
 import os
 
 import discord
+import asyncio
 from loguru import logger as log
 
 from cogs.onlyfans import OnlyFans
 from cogs.prodia import ImageGeneration
 from config import *
-from src.cookie_utils import load_cookies
+from src.http_utils import close_client
 
 bot = discord.Bot(debug_guilds=[guild_id])
 
@@ -24,6 +25,7 @@ try:
 except Exception as e:
     log.error(f"Could not load Prodia cog: {e}")
 
+
 @bot.event
 async def on_ready():
     log.info(f"Logged in as {bot.user}. Getting some lotion and tissues...")
@@ -31,3 +33,4 @@ async def on_ready():
 
 
 bot.run(os.environ.get("DISCORD_TOKEN"))
+asyncio.run(close_client())

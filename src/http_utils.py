@@ -3,6 +3,23 @@ import os
 import aiofiles
 import ujson as json
 from loguru import logger as log
+from aiohttp import ClientSession
+
+_client: ClientSession | None = None
+
+
+def http_get(headers, cookies, url):
+    global _client
+    if _client is None:
+        _client = ClientSession(headers=headers, cookies=cookies)
+    return _client.get(url)
+
+
+async def close_client():
+    global _client
+    if _client is not None:
+        await _client.close()
+        _client = None
 
 
 async def save_cookies(cookies, cookie_jar):
