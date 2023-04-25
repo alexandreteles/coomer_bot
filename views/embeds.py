@@ -8,8 +8,8 @@ async def model_info_embed(model: dict) -> discord.Embed:
         color=discord.Colour.blurple(),
     )
     embed.set_author(name=bot_name, icon_url=avatar_url)
-    embed.set_thumbnail(url=f"{icon_base_url}{model['id']}")
-    embed.set_image(url=f"{banner_base_url}{model['id']}")
+    embed.set_thumbnail(url=f"{icon_base_url}/{model['id']}")
+    embed.set_image(url=f"{banner_base_url}/{model['id']}")
 
     embed.add_field(name="First appeared", value=model["indexed"], inline=True)
     embed.add_field(name="Last update", value=model["updated"], inline=True)
