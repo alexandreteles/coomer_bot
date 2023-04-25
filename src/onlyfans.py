@@ -17,19 +17,20 @@ cookies: dict[str, str] = load_cookies(cookie_jar_file)
 model_cache: list[dict[str, str]] = []
 last_model_cache_update: int = 0
 
+
 async def get_models() -> list[dict[str, str]]:
-    """Get a list of all creators
+    """Get a list of all models
 
     Returns:
         list[dict[str, str]]: JSON with all available models
     """
     global model_cache, last_model_cache_update
-    if model_cache and last_model_cache_update > int(time()) - 60 * 60 * 1: # 1 hour
-        log.info("Returning cached model list")
+    if model_cache and last_model_cache_update > int(time()) - 60 * 60 * 1:  # 1 hour
+        log.debug("Returning cached model list")
         return model_cache
     async with aiohttp.ClientSession(headers=headers, cookies=cookies) as client:
         async with client.get(models_url) as response:
-            log.info(f"Getting creators from {models_url}")
+            log.debug(f"Getting creators from {models_url}")
             await save_cookies(response.cookies, cookie_jar_file)
             model_cache = ujson.loads(await response.text())
             last_model_cache_update = int(time())
@@ -37,45 +38,47 @@ async def get_models() -> list[dict[str, str]]:
 
 
 async def get_model_info(model_id: str) -> dict[str, str] | None:
-    """Get info about a creator
+    """Get info about a model
 
     Args:
-        creator_id (str): Creator ID
+        model_id (str): Model ID
 
     Returns:
-        dict[str, str]: JSON with creator info
+        dict[str, str]: JSON with model info
     """
-    log.info(f"Getting info for creator {model_id}")
-    creator_info: list[dict[str, str]] = [
-        creator for creator in await get_models() if creator["id"] == model_id
-    ]
-    if creator_info:
-        log.info(f"Found info for creator {model_id}. Returning results.")
-        return creator_info[0]
-    log.info(f"Could not find info for creator {model_id}.")
-    return None
+    log.debug(f"Getting info for model {model_id}")
+    model_info = next(
+        (model for model in await get_models() if model["id"] == model_id), None
+    )
+    if model_info:
+        log.debug(f"Found info for model {model_id}.")
+    else:
+        log.debug(f"Could not find info for model {model_id}.")
+    return model_info
 
 
 async def get_model_posts_offsets(model: str) -> list[int]:
-    log.info(f"Getting offsets for {model} posts")
+    log.debug(f"Getting offsets for {model} posts")
     async with aiohttp.ClientSession(headers=headers, cookies=cookies) as client:
         async with client.get(f"{user_base_url}/{model}") as response:
-            log.info(f"Getting  data for {model} posts")
+            log.debug(f"Getting data for {model} posts")
             await save_cookies(response.cookies, cookie_jar_file)
             soup = BeautifulSoup(await response.text(), "lxml")
-    if soup.find("title").text.strip() != "Coomer":
-        paginator: str = (
-            soup.find("div", class_="paginator", id="paginator-top").findChild("small").text
-        )
-        posts: int = int(paginator.split(" ")[-1])
-        offsets: list[int] = [x for x in range(0, posts, 25)]
-        return offsets
-    else :
-        return []
+        if soup.find("title").text.strip() != "Coomer":
+            paginator: str = (
+                soup.find("div", class_="paginator", id="paginator-top")
+                .findChild("small")
+                .text
+            )
+            posts: int = int(paginator.split(" ")[-1])
+            offsets: list[int] = [x for x in range(0, posts, 25)]
+            return offsets
+        else:
+            return []
 
 
 async def get_image_posts(model: str, offset: int) -> list[str]:
-    log.info(f"Getting posts for {model} at offset {offset}")
+    log.debug(f"Getting posts for {model} at offset {offset}")
     async with aiohttp.ClientSession(headers=headers, cookies=cookies) as client:
         async with client.get(f"{user_base_url}/{model}?o={offset}") as response:
             await save_cookies(response.cookies, cookie_jar_file)
@@ -95,7 +98,7 @@ async def get_image_posts(model: str, offset: int) -> list[str]:
 
 
 async def get_images_from_post(posts: list[str]) -> list[str]:
-    log.info(f"Getting images from posts...")
+    log.debug(f"Getting images from posts...")
     client = aiohttp.ClientSession(headers=headers, cookies=cookies)
 
     async def get_image(url):
@@ -116,21 +119,21 @@ async def get_images_from_post(posts: list[str]) -> list[str]:
 
 
 async def prepare_images(images: list[str]):
-    log.info(f"Preparing images for upload...")
+    log.debug(f"Preparing images for upload...")
     client = aiohttp.ClientSession(headers=headers, cookies=cookies)
 
     async def process(image):
         async with client.get(image) as response:
             await save_cookies(response.cookies, cookie_jar_file)
             content: io.BytesIO = io.BytesIO(await response.read())
-            
+
         image_size: int = content.getbuffer().nbytes
         if image_size > 1000 and image_size < 25000000:
             file_id = str(uuid.uuid4())
             file = discord.File(content, filename=f'{file_id}.{image.split(".")[-1]}')
             return file
         else:
-            log.info(f"Image {image} is too large or too small. Skipping.")
+            log.warning(f"Image {image} is too large or too small. Skipping.")
             return None
 
     image_objects: list = await asyncio.gather(*[process(image) for image in images])

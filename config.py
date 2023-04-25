@@ -42,6 +42,6 @@ base_coomer: str = "https://coomer.party"
 models_url: str = f"{base_coomer}/api/creators"
 icon_base_url: str = f"{base_coomer}/icons/{service}"
 banner_base_url: str = f"{base_coomer}/banners/{service}"
-user_base_url: str = f"{base_coomer}/api/{service}/user"
+user_base_url: str = f"{base_coomer}/{service}/user"
 
 prodia_url: str = "https://api.prodia.com/v1/job"
