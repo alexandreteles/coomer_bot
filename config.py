@@ -38,13 +38,10 @@ coomer_home_title: str = "Coomer"
 
 ### API URLS
 
-base_coomer: str = "https://coomer.party/"
-
-models_url: str = "https://coomer.party/api/creators/"
-icon_base_url: str = f"http://coomer.party/icons/{service}/"
-banner_base_url: str = f"https://coomer.party/banners/{service}/"
-
-base_onlyfans_url: str = "https://onlyfans.com/"
-base_coomer_url: str = f"https://coomer.party/{service}/user/"
+base_coomer: str = "https://coomer.party"
+models_url: str = f"{base_coomer}/api/creators"
+icon_base_url: str = f"{base_coomer}/icons/{service}"
+banner_base_url: str = f"{base_coomer}/banners/{service}"
+user_base_url: str = f"{base_coomer}/api/{service}/user"
 
 prodia_url: str = "https://api.prodia.com/v1/job"
