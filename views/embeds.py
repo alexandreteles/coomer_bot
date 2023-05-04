@@ -2,7 +2,7 @@ import discord
 from config import *
 
 
-def model_info_embed(model: dict) -> discord.Embed:
+async def model_info_embed(model: dict) -> discord.Embed:
     embed = discord.Embed(
         title=f"Model data for {model['id']}",
         description=f"This includes the basic information about the model",
@@ -18,7 +18,7 @@ def model_info_embed(model: dict) -> discord.Embed:
     return embed
 
 
-def loading_more_embed() -> discord.Embed:
+async def loading_more_embed() -> discord.Embed:
     embed = discord.Embed(
         title="Loading more pictures...",
         description="Please wait while we load more pictures for you",
@@ -29,7 +29,7 @@ def loading_more_embed() -> discord.Embed:
     return embed
 
 
-def no_data_available_embed(name: str) -> discord.Embed:
+async def no_data_available_embed(name: str) -> discord.Embed:
     embed = discord.Embed(
         title="No data available",
         description=f"There is no data available for {name}",
@@ -40,7 +40,7 @@ def no_data_available_embed(name: str) -> discord.Embed:
     return embed
 
 
-def unloading_results_embed() -> discord.Embed:
+async def unloading_results_embed() -> discord.Embed:
     embed = discord.Embed(
         title="Unloading results",
         description="We are unloading your request to save resources. If you want to continue, please use the command again.",
@@ -51,7 +51,7 @@ def unloading_results_embed() -> discord.Embed:
     return embed
 
 
-def no_more_pictures_embed() -> discord.Embed:
+async def no_more_pictures_embed() -> discord.Embed:
     embed = discord.Embed(
         title="No more pictures",
         description="There are no more pictures available for this model",
