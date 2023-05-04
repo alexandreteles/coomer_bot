@@ -1,7 +1,6 @@
 import asyncio
 import io
 import uuid
-from itertools import chain
 
 import aiohttp
 import discord
@@ -56,6 +55,17 @@ async def get_model_info(model_id: str) -> dict[str, str] | None:
 
 
 async def get_image_posts(model: str, offset: int, limit: int = 10) -> list[str]:
+    """
+    Returns a list of image URLs for a given model and offset.
+
+    Args:
+        model (str): The name of the model to retrieve images for.
+        offset (int): The offset to use when scraping images.
+
+    Returns:
+        List[str]: A list of strings representing the URLs to the images found.
+    """
+
     log.debug(f"Getting posts for {model} at offset {offset} with limit {limit}")
     async with http_get(
         headers, cookies, f"{user_base_url}/{model}?o={offset}"
@@ -72,6 +82,16 @@ async def get_image_posts(model: str, offset: int, limit: int = 10) -> list[str]
 
 
 async def prepare_images(images: list[str]) -> list[discord.File]:
+    """
+    Converts a list of image URLs into a list of `discord.File` objects.
+
+    Args:
+        images (list): A list of strings representing URLs to the images.
+
+    Returns:
+        list[discord.File]: A list of `discord.File` objects, ready to be uploaded.
+    """
+
     log.debug(f"Preparing images for upload...")
     client = aiohttp.ClientSession(headers=headers, cookies=cookies)
 
