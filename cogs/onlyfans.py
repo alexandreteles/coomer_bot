@@ -63,13 +63,17 @@ class OnlyFans(commands.Cog):
         images = await get_image_posts(name, offset, limit)
         offset += len(images)
         if not images:
-            await ctx.send_followup(embed=no_data_available_embed(name), ephemeral=True)
+            await ctx.send_followup(
+                embed=await no_data_available_embed(name), ephemeral=True
+            )
             return
 
         await send_images(images)
         if len(images) < limit:
             log.debug(f"Only {len(images)}/{limit} images found, not loading more")
-            await ctx.send_followup(embed=no_more_pictures_embed(), ephemeral=True)
+            await ctx.send_followup(
+                embed=await no_more_pictures_embed(), ephemeral=True
+            )
             return
 
         def check(interaction):
@@ -98,13 +102,13 @@ class OnlyFans(commands.Cog):
                 if f"{load_more_button.custom_id}" in str(interaction.data):
                     await msg.delete()
                     loading_msg = await ctx.send_followup(
-                        embed=loading_more_embed(), ephemeral=True
+                        embed=await loading_more_embed(), ephemeral=True
                     )
                     images = await get_image_posts(name, offset, limit)
                     if not images:
                         await msg.delete()
                         await ctx.send_followup(
-                            embed=no_more_pictures_embed(), ephemeral=True
+                            embed=await no_more_pictures_embed(), ephemeral=True
                         )
                         await loading_msg.delete()
                         break
@@ -115,6 +119,8 @@ class OnlyFans(commands.Cog):
                     raise asyncio.TimeoutError  # cheesy, but it works
             except asyncio.TimeoutError:
                 await msg.delete()
-                await ctx.send_followup(embed=unloading_results_embed(), ephemeral=True)
+                await ctx.send_followup(
+                    embed=await unloading_results_embed(), ephemeral=True
+                )
                 log.debug(f"Unloading results...")
                 break
