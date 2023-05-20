@@ -1,55 +1,65 @@
+import asyncio
+from typing import Final
+
 import discord
 from discord.commands import SlashCommandGroup
 from discord.ext import commands
 from discord.ui import Button, View
 from loguru import logger as log
-import asyncio
-from typing import Final
 
 from config import *
-from src.onlyfans import *
+from src.coomer import *
 from views.embeds import *
 
 
-class OnlyFans(commands.Cog):
+class CoomerParty(commands.Cog):
     def __init__(self, bot: discord.Bot):
         self.bot = bot
 
-    onlyfans = SlashCommandGroup(name="onlyfans", description="OnlyFans commands")
+    coomer_party = SlashCommandGroup(name="coomer", description="Coomer.party commands")
 
-    @onlyfans.command(
+    command_options: list[discord.Option] = [
+        discord.Option(
+            name="service",
+            type=str,
+            description="Service to search on",
+            choices=["onlyfans", "fansly"],
+            required=True,
+        ),
+        discord.Option(
+            name="name",
+            type=str,
+            description="Name of the model to search for",
+            required=True,
+        ),
+    ]
+
+    # info_options = photos_options
+
+    @coomer_party.command(
         name="info",
         description="Check if a model is available and return relevant information",
+        options=command_options,
     )
-    async def info(
-        self,
-        ctx: discord.ApplicationContext,
-        name: discord.Option(str, "Name of the model to search for", required=True),
-    ):
+    async def info(self, ctx: discord.ApplicationContext, service, name):
         await ctx.response.defer(ephemeral=True)
-        log.info(f"Searching for {name}")
-        result = await get_model_info(name.lower())
+        log.info(f"Searching for {name} in serivce {service}")
+        result = await get_model_info(model_id=name.lower(), service=service)
         if result:
-            await ctx.followup.send(embed=await model_info_embed(result))
+            await ctx.followup.send(embed=await model_info_embed(service, result))
         else:
             await ctx.followup.send(embed=await no_data_available_embed(name))
 
-    @onlyfans.command(
+    @coomer_party.command(
         name="photos",
         description="Get the latest photos from a model",
+        options=command_options,
     )
-    async def photos(
-        self,
-        ctx: discord.ApplicationContext,
-        name: discord.Option(str, "Name of the model to search for", required=True),
-    ):
+    async def photos(self, ctx: discord.ApplicationContext, service, name):
         await ctx.response.defer(ephemeral=True)
         log.info(f"Searching for {name}")
 
         async def send_images(images: list[str]):
-            # images = await get_image_posts(name, offset)
-            # if not images:
-            #     return
             files = await prepare_images(images)
             log.debug(f"Sending {len(files)} images")
             await ctx.followup.send(
@@ -59,8 +69,8 @@ class OnlyFans(commands.Cog):
             log.debug(f"{len(files)} images sent")
 
         limit: Final[int] = 10  # max allowed attachments per message
-        offset = 0
-        images = await get_image_posts(name, offset, limit)
+        offset: int = 0
+        images = await get_image_posts(service, name, offset, limit)
         offset += len(images)
         if not images:
             await ctx.send_followup(
@@ -104,7 +114,7 @@ class OnlyFans(commands.Cog):
                     loading_msg = await ctx.send_followup(
                         embed=await loading_more_embed(), ephemeral=True
                     )
-                    images = await get_image_posts(name, offset, limit)
+                    images = await get_image_posts(service, name, offset, limit)
                     if not images:
                         await msg.delete()
                         await ctx.send_followup(

@@ -2,8 +2,8 @@ import os
 
 import aiofiles
 import ujson as json
-from loguru import logger as log
 from aiohttp import ClientSession
+from loguru import logger as log
 
 _client: ClientSession | None = None
 

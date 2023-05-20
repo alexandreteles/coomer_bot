@@ -1,12 +1,13 @@
 import asyncio
 import io
 import uuid
+from time import time
 
 import aiohttp
 import discord
 import ujson
 from loguru import logger as log
-from time import time
+from toolz import filter
 
 from config import *
 from src.http_utils import *
@@ -14,6 +15,27 @@ from src.http_utils import *
 cookies: dict[str, str] = load_cookies(cookie_jar_file)
 model_cache: list[dict[str, str]] = []
 last_model_cache_update: int = 0
+
+
+async def get_id(data: list, name: str, service: str) -> str:
+    """
+    Returns the ID of a record for a given name and service in a list of dictionaries.
+
+    Args:
+        data (list): A list of dictionaries.
+        name (str): The name to search for.
+        service (str): The service to search for.
+
+    Returns:
+        str: The ID of the matching record, or None if not found.
+    """
+
+    matches = filter(
+        lambda item: item.get("name") == name and item.get("service") == service, data
+    )
+    match = next(matches, None)
+
+    return match.get("id") if match else None
 
 
 async def get_models() -> list[dict[str, str]]:
@@ -34,7 +56,9 @@ async def get_models() -> list[dict[str, str]]:
         return model_cache
 
 
-async def get_model_info(model_id: str) -> dict[str, str] | None:
+async def get_model_info(
+    model_id: str, service: str = "onlyfans"
+) -> dict[str, str] | None:
     """Get info about a model
 
     Args:
@@ -44,9 +68,14 @@ async def get_model_info(model_id: str) -> dict[str, str] | None:
         dict[str, str]: JSON with model info
     """
     log.debug(f"Getting info for model {model_id}")
-    model_info = next(
-        (model for model in await get_models() if model["id"] == model_id), None
-    )
+
+    models = await get_models()
+
+    if service == "fansly":
+        model_id = await get_id(models, model_id, service)
+        log.debug(f"Found model ID {model_id}")
+
+    model_info = next(filter(lambda model: model["id"] == model_id, models), None)
     if model_info:
         log.debug(f"Found info for model {model_id}.")
     else:
@@ -54,7 +83,12 @@ async def get_model_info(model_id: str) -> dict[str, str] | None:
     return model_info
 
 
-async def get_image_posts(model: str, offset: int, limit: int = 10) -> list[str]:
+async def get_image_posts(
+    service: str,
+    model: str,
+    offset: int,
+    limit: int = 10,
+) -> list[str]:
     """
     Returns a list of image URLs for a given model and offset.
 
@@ -66,9 +100,15 @@ async def get_image_posts(model: str, offset: int, limit: int = 10) -> list[str]
         List[str]: A list of strings representing the URLs to the images found.
     """
 
+    models = await get_models()
+
+    if service == "fansly":
+        model = await get_id(models, model, service)
+        log.debug(f"Found model ID {model}")
+
     log.debug(f"Getting posts for {model} at offset {offset} with limit {limit}")
     async with http_get(
-        headers, cookies, f"{user_base_url}/{model}?o={offset}"
+        headers, cookies, f"{user_base_url}/{service}/user/{model}?o={offset}"
     ) as response:
         await save_cookies(response.cookies, cookie_jar_file)
         posts: dict = ujson.loads(await response.text())
@@ -96,7 +136,7 @@ async def prepare_images(images: list[str]) -> list[discord.File]:
     client = aiohttp.ClientSession(headers=headers, cookies=cookies)
 
     async def process(image: str) -> discord.File | None:
-        async with client.get(image) as response:
+        async with http_get(headers, cookies, image) as response:
             content: io.BytesIO = io.BytesIO(await response.read())
 
         image_size: int = content.getbuffer().nbytes

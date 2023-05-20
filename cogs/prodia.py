@@ -13,10 +13,9 @@ class ImageGeneration(commands.Cog):
         self.bot = bot
 
     prodia: SlashCommandGroup = SlashCommandGroup(
-        name="ai",
-        description="AI Image Generation"
-        )
-    
+        name="ai", description="AI Image Generation"
+    )
+
     @prodia.command(
         name="generate",
         description="Generate an image using AI",
@@ -24,17 +23,16 @@ class ImageGeneration(commands.Cog):
     async def generate(
         self,
         ctx: discord.ApplicationContext,
-        prompt: discord.Option(str, "Prompt to generate an image from", required=True)
+        prompt: discord.Option(str, "Prompt to generate an image from", required=True),
     ):
         await ctx.response.defer(ephemeral=True)
         log.info(f"Generating image...")
         result = await generate_image(prompt)
         if result:
             log.info(f"Generated image successfully.")
-            await ctx.followup.send(file=result["file"], ephemeral=True)
             await ctx.followup.send(
-                embed=await generated_image_embed(result["metadata"]),
-                ephemeral=True
-                )
+                embed=await generated_image_embed(result["metadata"]), ephemeral=True
+            )
+            await ctx.followup.send(file=result["file"], ephemeral=True)
         else:
             await ctx.followup.send(content="Something went wrong.")
